@@ -19,7 +19,7 @@ int pos_x;
 int pos_y;
 
 
-const double MAX_SPEED = 4;
+const double MAX_SPEED = 3;
 double speed = 0.0;
 double acc = 0.2;
 double dec = 0.3;
@@ -31,12 +31,12 @@ double slip_angle = 5 * PI;
 
 time_t total_time;
 
-const int SCREEN_CNT = 2;
-static HANDLE screen[SCREEN_CNT];
+static HANDLE screen[2];
 int screen_index;
 const int CAMERAWIDTH = 80;
 const int CAMERAHEIGHT = 25;
-char screen_camera[(CAMERAHEIGHT + 1) * (CAMERAWIDTH + 1) + 25];
+//char screen_camera[(CAMERAHEIGHT + 1) * (CAMERAWIDTH + 1) + 25];
+char screen_camera[CAMERAHEIGHT + 1][CAMERAWIDTH + 1];
 
 void ScreenInit()
 {
@@ -53,7 +53,7 @@ void ScreenInit()
 void ScreenFlipping()
 {
 	SetConsoleActiveScreenBuffer(screen[screen_index]);
-	screen_index = (screen_index+1) % SCREEN_CNT;
+	screen_index = screen_index ? 0 : 1;
 }
 
 void ScreenClear()
@@ -78,7 +78,7 @@ void Input()
 	if (GetAsyncKeyState(VK_DOWN)) direction[DOWN] = true;
 	if (GetAsyncKeyState(VK_RIGHT)) direction[RIGHT] = true;
 	if (GetAsyncKeyState(VK_LEFT)) direction[LEFT] = true;
-	if (GetAsyncKeyState(0x41)) direction[SHIFT] = true; // A key
+	if (GetAsyncKeyState(0x41)) direction[SHIFT] = true; // 'A' key
 }
 
 void Logic()
@@ -180,8 +180,7 @@ void Render()
 	int screen_pos = 0;
 	int print_out_x = pos_x - screen_center_x > 0 ? pos_x - screen_center_x : 0;
 	int print_out_y = pos_y - screen_center_y > 0 ? pos_y - screen_center_y : 0;
-	DWORD screen_cnt = 0;
-	char new_line = '\n';
+
 	for (int y = print_out_y; y < print_out_y + CAMERAHEIGHT; y++)
 	{
 		for (int x = print_out_x; x < print_out_x + CAMERAWIDTH; x++)
@@ -193,49 +192,52 @@ void Render()
 			double rotated_y = center_relative_x * sin(angle) + center_relative_y * cos(angle);
 			int new_x = (int)rotated_x + pos_x;
 			int new_y = (int)rotated_y + pos_y;
-			if(game_map[new_y][new_x] == ' ')
-				SetConsoleTextAttribute(screen[screen_index], BACKGROUND_INTENSITY);
-			else if(game_map[new_y][new_x] == '$')
-				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_GREEN | BACKGROUND_GREEN);
-			else if(game_map[new_y][new_x] == 'o')
-				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | BACKGROUND_RED);
-			else if(game_map[new_y][new_x] == '#')
-				SetConsoleTextAttribute(screen[screen_index], NULL);
-			else if(game_map[new_y][new_x] == '*')
-				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | BACKGROUND_BLUE);
-			else if(game_map[new_y][new_x] == '-')
-				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
-			WriteFile(screen[screen_index], game_map[new_y]+new_x, 1, &screen_cnt, NULL);
+			screen_camera[y - print_out_y][x - print_out_x] = game_map[new_y][new_x];
 			//screen_camera[(y - print_out_y) * (CAMERAWIDTH + 1) + (x - print_out_x)] = game_map[new_y][new_x];
-			//screen_cnt++;
 		}
-		SetConsoleTextAttribute(screen[screen_index], NULL);
-		WriteFile(screen[screen_index], &new_line, 1, &screen_cnt, NULL);
-		//screen_cnt++;
+		screen_camera[y - print_out_y][CAMERAWIDTH] = '\n';
+		//screen_camera[(y - print_out_y) * (CAMERAWIDTH + 1) + CAMERAWIDTH] = '\n';
 	}
 
+	if (tmp == '$') tmp = 'Y';
 	game_map[pos_y][pos_x] = tmp;
 	if (direction[SHIFT]) game_map[pos_y][pos_x] = '#';
-
-	int screen_len = strlen(screen_camera);
 
 	time_t next_time = clock();
 	int min = (next_time / 1000) / 60;
 	int sec = (next_time / 1000) % 60;
 	int msec = next_time % 1000;
-	sprintf(screen_camera, "%2d : %2d : %d\n", min, sec, msec);
-	SetConsoleTextAttribute(screen[screen_index], BACKGROUND_INTENSITY);
-	WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &screen_cnt, NULL);
+	sprintf(screen_camera[CAMERAHEIGHT], "%2d : %2d : %d\n", min, sec, msec);
 }
 
 void Draw()
 {
 	ScreenClear();
-	DWORD dw;
+	DWORD dw = 0;
 	SetConsoleCursorPosition(screen[screen_index], { 0, 0 });
 
-	Render();
-	//SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | BACKGROUND_INTENSITY);
+
+	for (int screen_y = 0; screen_y <= SCREEN_HEIGHT; screen_y++)
+	{
+		for (int screen_x = 0; screen_x <= SCREEN_WIDTH; screen_x++)
+		{
+			if (screen_camera[screen_y][screen_x] == ' ')
+				SetConsoleTextAttribute(screen[screen_index], BACKGROUND_INTENSITY);
+			else if (screen_camera[screen_y][screen_x] == '$')
+				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_GREEN | BACKGROUND_GREEN);
+			else if (screen_camera[screen_y][screen_x] == 'o')
+				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | BACKGROUND_RED);
+			else if (screen_camera[screen_y][screen_x] == '#')
+				SetConsoleTextAttribute(screen[screen_index], NULL);
+			else if (screen_camera[screen_y][screen_x] == '*')
+				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | BACKGROUND_BLUE);
+			else if (screen_camera[screen_y][screen_x] == 'Y')
+				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_RED | BACKGROUND_GREEN);
+			else if (screen_camera[screen_y][screen_x] == '-')
+				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
+			WriteFile(screen[screen_index], screen_camera[screen_y] + screen_x, 1, &dw, NULL);
+		}
+	}
 	//WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &dw, NULL);
 	ScreenFlipping();
 }
