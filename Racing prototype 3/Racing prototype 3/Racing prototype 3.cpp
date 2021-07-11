@@ -13,13 +13,13 @@ const int SCREEN_WIDTH = 80;
 const double PI = 3.141592;
 
 
-enum Direction {STOP = 0, UP, DOWN, RIGHT, LEFT, SHIFT};
+enum Direction { STOP = 0, UP, DOWN, RIGHT, LEFT, SHIFT };
 bool direction[6] = {};
 int pos_x;
 int pos_y;
 
 
-const double MAX_SPEED = 3;
+const double MAX_SPEED = 4;
 double speed = 0.0;
 double acc = 0.2;
 double dec = 0.3;
@@ -31,7 +31,8 @@ double slip_angle = 5 * PI;
 
 time_t total_time;
 
-static HANDLE screen[2];
+const int SCREEN_CNT = 2;
+static HANDLE screen[SCREEN_CNT];
 int screen_index;
 const int CAMERAWIDTH = 80;
 const int CAMERAHEIGHT = 25;
@@ -42,7 +43,7 @@ void ScreenInit()
 	CONSOLE_CURSOR_INFO cii;
 	screen[0] = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
 	screen[1] = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
-	
+
 	cii.dwSize = 1;
 	cii.bVisible = FALSE;
 	SetConsoleCursorInfo(screen[0], &cii);
@@ -52,7 +53,7 @@ void ScreenInit()
 void ScreenFlipping()
 {
 	SetConsoleActiveScreenBuffer(screen[screen_index]);
-	screen_index = screen_index ? 0 : 1;
+	screen_index = (screen_index+1) % SCREEN_CNT;
 }
 
 void ScreenClear()
@@ -77,7 +78,7 @@ void Input()
 	if (GetAsyncKeyState(VK_DOWN)) direction[DOWN] = true;
 	if (GetAsyncKeyState(VK_RIGHT)) direction[RIGHT] = true;
 	if (GetAsyncKeyState(VK_LEFT)) direction[LEFT] = true;
-	if (GetAsyncKeyState(VK_SHIFT)) direction[SHIFT] = true;
+	if (GetAsyncKeyState(0x41)) direction[SHIFT] = true; // A key
 }
 
 void Logic()
@@ -96,7 +97,7 @@ void Logic()
 	// drift
 	/*if (direction[SHIFT])
 	{
-		
+
 	}*/
 
 	// friction
@@ -109,17 +110,17 @@ void Logic()
 
 	if (direction[LEFT] && speed != 0.0) angle -= turn_speed * speed / MAX_SPEED;
 	if (direction[RIGHT] && speed != 0.0) angle += turn_speed * speed / MAX_SPEED;
-	
+
 
 	// drift
 	if (direction[SHIFT])
 	{
-		
+
 		//if (SLIP_INIT == slip_angle) slip_angle = angle;
 
 		/*if (direction[LEFT] && speed != 0.0) slip_angle -= turn_speed * speed / MAX_SPEED;
 		if (direction[RIGHT] && speed != 0.0) slip_angle += turn_speed * speed / MAX_SPEED;
-		
+
 		if (speed - dec > 0) speed -= dec;
 
 		pos_x += sin(slip_angle) * speed;
@@ -137,7 +138,7 @@ void Logic()
 	if (angle >= 2 * PI) angle -= 2 * PI;
 	if (angle <= -2 * PI) angle += 2 * PI;
 
-	
+
 
 	// bound
 	if (pos_x < CAMERAWIDTH * 2)
@@ -160,7 +161,7 @@ void Logic()
 		speed = 0.0;
 		pos_y = MAP_HEIGHT - 2 * CAMERAHEIGHT - 1;
 	}
-	
+
 	if (game_map[pos_y][pos_x] == '$')
 	{
 		speed = 1.0;
@@ -177,10 +178,11 @@ void Render()
 	int screen_center_x = CAMERAWIDTH / 2;
 	int screen_center_y = 3 * CAMERAHEIGHT / 4;
 	int screen_pos = 0;
-	int print_out_x = pos_x - screen_center_x > 0 ? pos_x-screen_center_x : 0;
-	int print_out_y = pos_y - screen_center_y > 0 ? pos_y-screen_center_y : 0;
-
-		for (int y = print_out_y; y < print_out_y + CAMERAHEIGHT; y++)
+	int print_out_x = pos_x - screen_center_x > 0 ? pos_x - screen_center_x : 0;
+	int print_out_y = pos_y - screen_center_y > 0 ? pos_y - screen_center_y : 0;
+	DWORD screen_cnt = 0;
+	char new_line = '\n';
+	for (int y = print_out_y; y < print_out_y + CAMERAHEIGHT; y++)
 	{
 		for (int x = print_out_x; x < print_out_x + CAMERAWIDTH; x++)
 		{
@@ -191,9 +193,25 @@ void Render()
 			double rotated_y = center_relative_x * sin(angle) + center_relative_y * cos(angle);
 			int new_x = (int)rotated_x + pos_x;
 			int new_y = (int)rotated_y + pos_y;
-			screen_camera[(y - print_out_y) * (CAMERAWIDTH + 1) + (x - print_out_x)] = game_map[new_y][new_x];
+			if(game_map[new_y][new_x] == ' ')
+				SetConsoleTextAttribute(screen[screen_index], BACKGROUND_INTENSITY);
+			else if(game_map[new_y][new_x] == '$')
+				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_GREEN | BACKGROUND_GREEN);
+			else if(game_map[new_y][new_x] == 'o')
+				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | BACKGROUND_RED);
+			else if(game_map[new_y][new_x] == '#')
+				SetConsoleTextAttribute(screen[screen_index], NULL);
+			else if(game_map[new_y][new_x] == '*')
+				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | BACKGROUND_BLUE);
+			else if(game_map[new_y][new_x] == '-')
+				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
+			WriteFile(screen[screen_index], game_map[new_y]+new_x, 1, &screen_cnt, NULL);
+			//screen_camera[(y - print_out_y) * (CAMERAWIDTH + 1) + (x - print_out_x)] = game_map[new_y][new_x];
+			//screen_cnt++;
 		}
-		screen_camera[(y - print_out_y) * (CAMERAWIDTH + 1) + CAMERAWIDTH] = '\n';
+		SetConsoleTextAttribute(screen[screen_index], NULL);
+		WriteFile(screen[screen_index], &new_line, 1, &screen_cnt, NULL);
+		//screen_cnt++;
 	}
 
 	game_map[pos_y][pos_x] = tmp;
@@ -205,7 +223,8 @@ void Render()
 	int min = (next_time / 1000) / 60;
 	int sec = (next_time / 1000) % 60;
 	int msec = next_time % 1000;
-	sprintf(screen_camera+screen_len, "%2d : %2d : %d\n", min, sec, msec);
+	sprintf(screen_camera, "%2d : %2d : %d\n", min, sec, msec);
+	WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &screen_cnt, NULL);
 }
 
 void Draw()
@@ -215,8 +234,8 @@ void Draw()
 	SetConsoleCursorPosition(screen[screen_index], { 0, 0 });
 
 	Render();
-	SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | BACKGROUND_INTENSITY);
-	WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &dw, NULL);
+	//SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | BACKGROUND_INTENSITY);
+	//WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &dw, NULL);
 	ScreenFlipping();
 }
 
@@ -236,7 +255,7 @@ void Setup()
 
 	int bound_x = 2 * CAMERAWIDTH, bound_y = 2 * CAMERAHEIGHT;
 	for (int i = bound_x; i < MAP_WIDTH - bound_x; i++)
-		game_map[bound_y][i] = game_map[MAP_HEIGHT-bound_y][i] = '*';
+		game_map[bound_y][i] = game_map[MAP_HEIGHT - bound_y][i] = '*';
 	for (int i = bound_y; i < MAP_HEIGHT - bound_y; i++)
 		game_map[i][bound_x] = game_map[i][MAP_WIDTH - bound_x] = '*';
 
@@ -254,7 +273,7 @@ void Setup()
 
 	for (int i = CAMERAWIDTH << 1; i < sq_x; i++)
 		game_map[MAP_HEIGHT >> 1][i] = '-';
-	
+
 	speed = 0.0;
 
 	ScreenInit();
@@ -267,7 +286,7 @@ int main()
 
 	while (true)
 	{
-		Sleep(100/6);
+		Sleep(1);
 		Input();
 		Logic();
 		Render();
