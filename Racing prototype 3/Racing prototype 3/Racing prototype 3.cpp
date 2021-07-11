@@ -224,6 +224,7 @@ void Render()
 	int sec = (next_time / 1000) % 60;
 	int msec = next_time % 1000;
 	sprintf(screen_camera, "%2d : %2d : %d\n", min, sec, msec);
+	SetConsoleTextAttribute(screen[screen_index], BACKGROUND_INTENSITY);
 	WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &screen_cnt, NULL);
 }
 
