@@ -94,12 +94,6 @@ void Logic()
 		else speed -= acc; // acceleration
 	}
 
-	// drift
-	/*if (direction[SHIFT])
-	{
-
-	}*/
-
 	// friction
 	if (!direction[UP] && !direction[DOWN])
 	{
@@ -126,8 +120,8 @@ void Logic()
 		pos_x += sin(slip_angle) * speed;
 		pos_y -= cos(slip_angle) * speed;*/
 
-		if (direction[LEFT] && speed != 0.0) angle -= turn_speed * speed / MAX_SPEED;
-		if (direction[RIGHT] && speed != 0.0) angle += turn_speed * speed / MAX_SPEED;
+		if (direction[LEFT] && speed != 0.0) angle -= turn_speed * (MAX_SPEED-speed);
+		if (direction[RIGHT] && speed != 0.0) angle += turn_speed * (MAX_SPEED-speed);
 
 		if (speed - dec > 0) speed -= dec;
 	}
@@ -162,12 +156,10 @@ void Logic()
 		pos_y = MAP_HEIGHT - 2 * CAMERAHEIGHT - 1;
 	}
 
-	if (game_map[pos_y][pos_x] == '$')
+	if (game_map[pos_y][pos_x] == 'G' || game_map[pos_y][pos_x] == 'Y')
 	{
 		speed = 1.0;
 	}
-
-
 }
 
 void Render()
@@ -199,7 +191,7 @@ void Render()
 		//screen_camera[(y - print_out_y) * (CAMERAWIDTH + 1) + CAMERAWIDTH] = '\n';
 	}
 
-	if (tmp == '$') tmp = 'Y';
+	if (tmp == 'G') tmp = 'Y';
 	game_map[pos_y][pos_x] = tmp;
 	if (direction[SHIFT]) game_map[pos_y][pos_x] = '#';
 
@@ -213,7 +205,7 @@ void Render()
 void Draw()
 {
 	ScreenClear();
-	DWORD dw = 0;
+	DWORD screen_size = 0;
 	SetConsoleCursorPosition(screen[screen_index], { 0, 0 });
 
 
@@ -223,19 +215,26 @@ void Draw()
 		{
 			if (screen_camera[screen_y][screen_x] == ' ')
 				SetConsoleTextAttribute(screen[screen_index], BACKGROUND_INTENSITY);
-			else if (screen_camera[screen_y][screen_x] == '$')
+
+			else if (screen_camera[screen_y][screen_x] == 'G')
 				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_GREEN | BACKGROUND_GREEN);
+
 			else if (screen_camera[screen_y][screen_x] == 'o')
 				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | BACKGROUND_RED);
+
 			else if (screen_camera[screen_y][screen_x] == '#')
 				SetConsoleTextAttribute(screen[screen_index], NULL);
+
 			else if (screen_camera[screen_y][screen_x] == '*')
 				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | BACKGROUND_BLUE);
+
 			else if (screen_camera[screen_y][screen_x] == 'Y')
 				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_RED | BACKGROUND_GREEN);
+
 			else if (screen_camera[screen_y][screen_x] == '-')
 				SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
-			WriteFile(screen[screen_index], screen_camera[screen_y] + screen_x, 1, &dw, NULL);
+
+			WriteFile(screen[screen_index], screen_camera[screen_y] + screen_x, 1, &screen_size, NULL);
 		}
 	}
 	//WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &dw, NULL);
@@ -267,7 +266,7 @@ void Setup()
 	{
 		for (int j = sq_x; j < sq_x + sq_x; j++)
 		{
-			game_map[i][j] = '$';
+			game_map[i][j] = 'G';
 		}
 	}
 
