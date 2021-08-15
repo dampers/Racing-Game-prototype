@@ -1,7 +1,9 @@
 ﻿#include <iostream>
 #include <Windows.h>
 #include <string.h>
+#include <vector>
 #include <windows.graphics.h>
+
 #pragma warning(disable:4996)
 
 
@@ -14,11 +16,27 @@ const int SCREEN_HEIGHT = 25;
 const int SCREEN_WIDTH = 80;
 const double PI = 3.141592;
 
-enum Direction { STOP = 0, UP, DOWN, RIGHT, LEFT, SHIFT };
-bool direction[6] = {};
+enum Direction { STOP = 0, UP, DOWN, RIGHT, LEFT, DRIFT };
+
+class InputStream
+{
+public:
+    bool direction[6];
+    void driveInput()
+    {
+        for (int i = 0; i < 6; i++)
+            direction[i] = false;
+        if (GetAsyncKeyState(VK_UP)) direction[UP] = true;
+        if (GetAsyncKeyState(VK_DOWN)) direction[DOWN] = true;
+        if (GetAsyncKeyState(VK_RIGHT)) direction[RIGHT] = true;
+        if (GetAsyncKeyState(VK_LEFT)) direction[LEFT] = true;
+        if (GetAsyncKeyState(0x41)) direction[DRIFT] = true; // 'A' key
+    }
+};
 
 class Kart
 {
+private:
     double speed = 0.0;
     double acc = 0.2;
     double dec = 0.3;
@@ -26,8 +44,21 @@ class Kart
     double turn_speed = 0.08;
     int pos_x;
     int pos_y;
+    bool direction[6] = {};
 
-    void move()
+public:
+
+    Kart(int pos_x, int pos_y, double speed) : pos_x(pos_x), pos_y(pos_y), speed(speed) {}
+
+    void putDirection(bool* direction)
+    {
+        for (int i = 0; i < 6; i++)
+            this->direction[i] = direction[i];
+    }
+
+    int getAngle() { return angle; }
+    
+    void acceleration()
     {
         if (direction[UP] && speed < MAX_SPEED)
         {
@@ -39,7 +70,10 @@ class Kart
             if (speed > 0) speed -= dec; // deceleration
             else speed -= acc; // acceleration
         }
-        // friction
+    }
+
+    void friction()
+    {
         if (!direction[UP] && !direction[DOWN])
         {
             if (speed - dec > 0) speed -= dec;
@@ -48,20 +82,20 @@ class Kart
         }
         if (direction[LEFT] && speed != 0.0) angle -= turn_speed * speed / MAX_SPEED;
         if (direction[RIGHT] && speed != 0.0) angle += turn_speed * speed / MAX_SPEED;
-        // drift
-        if (direction[SHIFT])
+    }
+
+    void drift()
+    {
+        if (direction[DRIFT])
         {
             if (direction[LEFT] && speed != 0.0) angle -= turn_speed * (MAX_SPEED - speed);
             if (direction[RIGHT] && speed != 0.0) angle += turn_speed * (MAX_SPEED - speed);
-
             if (speed - dec > 0) speed -= dec;
         }
-        pos_x += sin(angle) * speed;
-        pos_y -= cos(angle) * speed;
+    }
 
-        if (angle >= 2 * PI) angle -= 2 * PI;
-        if (angle <= -2 * PI) angle += 2 * PI;
-
+    void checkBoundary()
+    {
         if (pos_x < CAMERA_WIDTH * 2)
         {
             speed = 0.0;
@@ -82,22 +116,39 @@ class Kart
             speed = 0.0;
             pos_y = MAP_HEIGHT - 2 * CAMERA_HEIGHT - 1;
         }
+    }
 
-        /*if (game_map[pos_y][pos_x] == 'G' || game_map[pos_y][pos_x] == 'Y')
-        {
+    void drive()
+    {
+        acceleration();
+        friction();
+        drift();
+
+        pos_x += sin(angle) * speed;
+        pos_y -= cos(angle) * speed;
+
+        if (angle >= 2 * PI) angle -= 2 * PI;
+        if (angle <= -2 * PI) angle += 2 * PI;
+
+        checkBoundary();
+    }
+
+    void checkMaterial(char material)
+    {
+        if (material == 'G' || material == 'Y')
             speed = 1.0;
-        }*/
     }
 
 };
 
 class Screen
 {
-    char screen_camera[CAMERA_HEIGHT + 1][CAMERA_WIDTH + 1];
     static HANDLE screen[2];
     int screen_index;
 
 public:
+    char screen_camera[CAMERA_HEIGHT + 1][CAMERA_WIDTH + 1];
+    
     void screenInit()
     {
         CONSOLE_CURSOR_INFO cii;
@@ -125,10 +176,56 @@ public:
         CloseHandle(screen[0]);
         CloseHandle(screen[1]);
     }
+
+
+    void Render()
+    {
+        ScreenClear();
+        DWORD screen_size = 0;
+        SetConsoleCursorPosition(screen[screen_index], { 0, 0 });
+
+        for (int screen_y = 0; screen_y <= SCREEN_HEIGHT; screen_y++)
+        {
+            for (int screen_x = 0; screen_x <= SCREEN_WIDTH; screen_x++)
+            {
+                if (screen_camera[screen_y][screen_x] == ' ')
+                    SetConsoleTextAttribute(screen[screen_index], BACKGROUND_INTENSITY);
+
+                else if (screen_camera[screen_y][screen_x] == 'G')
+                    SetConsoleTextAttribute(screen[screen_index], FOREGROUND_GREEN | BACKGROUND_GREEN);
+
+                else if (screen_camera[screen_y][screen_x] == 'o')
+                    SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | BACKGROUND_RED);
+
+                else if (screen_camera[screen_y][screen_x] == '#')
+                    SetConsoleTextAttribute(screen[screen_index], NULL);
+
+                else if (screen_camera[screen_y][screen_x] == '*')
+                    SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | BACKGROUND_BLUE);
+
+                else if (screen_camera[screen_y][screen_x] == 'Y')
+                    SetConsoleTextAttribute(screen[screen_index], FOREGROUND_RED | FOREGROUND_GREEN | BACKGROUND_RED | BACKGROUND_GREEN);
+
+                else if (screen_camera[screen_y][screen_x] == '-')
+                    SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
+
+                WriteFile(screen[screen_index], screen_camera[screen_y] + screen_x, 1, &screen_size, NULL);
+            }
+        }
+        //WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &dw, NULL);
+        ScreenFlipping();
+    }
+};
+
+
+class Map
+{
+    char game_map[1001][1001];
+
 };
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    return 0;
 }
 

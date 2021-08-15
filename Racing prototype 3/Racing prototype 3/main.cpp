@@ -162,7 +162,7 @@ void Logic()
 	}
 }
 
-void Render()
+void Draw()
 {
 	memset(screen_camera, 0, sizeof(screen_camera));
 	char tmp = game_map[pos_y][pos_x];
@@ -202,7 +202,7 @@ void Render()
 	sprintf(screen_camera[CAMERAHEIGHT], "%2d : %2d : %d\n", min, sec, msec);
 }
 
-void Draw()
+void Render()
 {
 	ScreenClear();
 	DWORD screen_size = 0;
@@ -291,8 +291,8 @@ int main()
 		Sleep(1);
 		Input();
 		Logic();
-		Render();
 		Draw();
+		Render();
 	}
 
 	ScreenRelease();
