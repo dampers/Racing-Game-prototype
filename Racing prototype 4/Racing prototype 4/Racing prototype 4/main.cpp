@@ -7,6 +7,9 @@
 #pragma warning(disable:4996)
 #define PI 3.1415926535
 
+const int MAX_HEIGHT = 1001;
+const int MAX_WIDTH = 1001;
+
 const int CAMERA_WIDTH = 80;
 const int CAMERA_HEIGHT = 25;
 const double MAX_SPEED = 3;
@@ -17,7 +20,7 @@ const int SCREEN_WIDTH = 80;
 
 enum Direction { STOP = 0, UP, DOWN, RIGHT, LEFT, DRIFT };
 
-class InputStream
+class INPUT_STREAM
 {
 public:
     bool direction[6];
@@ -33,7 +36,7 @@ public:
     }
 };
 
-class Kart
+class KART
 {
 private:
     double speed = 0.0;
@@ -45,18 +48,6 @@ private:
     int pos_y;
     bool direction[6] = {};
 
-public:
-
-    Kart(int pos_x, int pos_y, double speed) : pos_x(pos_x), pos_y(pos_y), speed(speed) {}
-
-    void putDirection(bool* direction)
-    {
-        for (int i = 0; i < 6; i++)
-            this->direction[i] = direction[i];
-    }
-
-    int getAngle() { return angle; }
-    
     void acceleration()
     {
         if (direction[UP] && speed < MAX_SPEED)
@@ -117,6 +108,28 @@ public:
         }
     }
 
+public:
+
+    KART(int pos_x, int pos_y, double speed) : pos_x(pos_x), pos_y(pos_y), speed(speed) {}
+
+    std::pair<int, int> getPosPair()
+    {
+        return std::make_pair(pos_x, pos_y);
+    }
+
+    bool getDrift()
+    {
+        return direction[DRIFT];
+    }
+
+    void putDirection(bool* direction)
+    {
+        for (int i = 0; i < 6; i++)
+            this->direction[i] = direction[i];
+    }
+
+    int getAngle() { return angle; }
+
     void drive()
     {
         acceleration();
@@ -140,25 +153,12 @@ public:
 
 };
 
-class Screen
+class GAME_SCREEN
 {
-    static HANDLE screen[2];
+    HANDLE screen[2];
     int screen_index;
-
-public:
     char screen_camera[CAMERA_HEIGHT + 1][CAMERA_WIDTH + 1];
-    
-    void screenInit()
-    {
-        CONSOLE_CURSOR_INFO cii;
-        screen[0] = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
-        screen[1] = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
 
-        cii.dwSize = 1;
-        cii.bVisible = FALSE;
-        SetConsoleCursorInfo(screen[0], &cii);
-        SetConsoleCursorInfo(screen[1], &cii);
-    }
     void ScreenFlipping()
     {
         SetConsoleActiveScreenBuffer(screen[screen_index]);
@@ -170,12 +170,68 @@ public:
         DWORD dw;
         FillConsoleOutputCharacter(screen[screen_index], ' ', sizeof(screen_camera), Coor, &dw);
     }
+
+public:
+    
+
+    void screenInit()
+    {
+        CONSOLE_CURSOR_INFO cii;
+        screen[0] = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
+        screen[1] = CreateConsoleScreenBuffer(GENERIC_READ | GENERIC_WRITE, 0, NULL, CONSOLE_TEXTMODE_BUFFER, NULL);
+
+        cii.dwSize = 1;
+        cii.bVisible = FALSE;
+        SetConsoleCursorInfo(screen[0], &cii);
+        SetConsoleCursorInfo(screen[1], &cii);
+    }
+
     void ScreenRelease()
     {
         CloseHandle(screen[0]);
         CloseHandle(screen[1]);
     }
 
+    void Draw(char game_map[][MAX_WIDTH], std::pair<int, int> Kpos, double angle, bool drift)
+    {
+        int pos_y = Kpos.second, pos_x = Kpos.first;
+        memset(screen_camera, 0, sizeof(screen_camera));
+        char tmp = game_map[pos_y][pos_x];
+        game_map[pos_y][pos_x] = 'o';
+        int screen_center_x = CAMERA_WIDTH / 2;
+        int screen_center_y = 3 * CAMERA_HEIGHT / 4;
+        int screen_pos = 0;
+        int print_out_x = pos_x - screen_center_x > 0 ? pos_x - screen_center_x : 0;
+        int print_out_y = pos_y - screen_center_y > 0 ? pos_y - screen_center_y : 0;
+
+        for (int y = print_out_y; y < print_out_y + CAMERA_HEIGHT; y++)
+        {
+            for (int x = print_out_x; x < print_out_x + CAMERA_WIDTH; x++)
+            {
+                int center_relative_x = x - pos_x;
+                int center_relative_y = y - pos_y;
+
+                double rotated_x = center_relative_x * cos(angle) - center_relative_y * sin(angle);
+                double rotated_y = center_relative_x * sin(angle) + center_relative_y * cos(angle);
+                int new_x = (int)rotated_x + pos_x;
+                int new_y = (int)rotated_y + pos_y;
+                screen_camera[y - print_out_y][x - print_out_x] = game_map[new_y][new_x];
+                //screen_camera[(y - print_out_y) * (CAMERAWIDTH + 1) + (x - print_out_x)] = game_map[new_y][new_x];
+            }
+            screen_camera[y - print_out_y][CAMERA_WIDTH] = '\n';
+            //screen_camera[(y - print_out_y) * (CAMERAWIDTH + 1) + CAMERAWIDTH] = '\n';
+        }
+
+        if (tmp == 'G') tmp = 'Y';
+        game_map[pos_y][pos_x] = tmp;
+        if (drift) game_map[pos_y][pos_x] = '#';
+
+        time_t next_time = clock();
+        int min = (next_time / 1000) / 60;
+        int sec = (next_time / 1000) % 60;
+        int msec = next_time % 1000;
+        sprintf(screen_camera[CAMERA_HEIGHT], "%2d : %2d : %d\n", min, sec, msec);
+    }
 
     void Render()
     {
@@ -217,9 +273,10 @@ public:
 };
 
 
-class Map
+class GAME_MAP
 {
-    char game_map[1001][1001];
+public:
+    char game_map[MAX_HEIGHT][MAX_WIDTH];
 
     void SetMap()
     {
@@ -257,6 +314,34 @@ class Map
 
 int main()
 {
+
+    // game set up
+    GAME_MAP* GameMap = new GAME_MAP();
+    GameMap->SetMap();
+
+    GAME_SCREEN* Screen = new GAME_SCREEN();
+    Screen->screenInit();
+    
+    INPUT_STREAM* InputStream = new INPUT_STREAM();
+    
+    std::vector<KART*> Kart_V;
+    Kart_V.push_back(new KART(MAP_WIDTH / 4, MAP_HEIGHT / 2 + 1, 0.0));
+    
+    time_t total_time = clock();
+    
+    while (true)
+    {
+        Sleep(1);
+        InputStream->driveInput();
+        Kart_V[0]->putDirection(InputStream->direction);
+        Kart_V[0]->drive();
+        
+        Screen->Draw(GameMap->game_map, Kart_V[0]->getPosPair(), Kart_V[0]->getAngle(), Kart_V[0]->getDrift());
+
+        Screen->Render();
+    }
+
+    Screen->ScreenRelease();
     return 0;
 }
 
