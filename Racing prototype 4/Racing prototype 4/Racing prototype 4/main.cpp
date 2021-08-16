@@ -316,13 +316,13 @@ int main()
 {
 
     // game set up
-    GAME_MAP* GameMap = new GAME_MAP();
-    GameMap->SetMap();
+    GAME_MAP GameMap = GAME_MAP();
+    GameMap.SetMap();
 
-    GAME_SCREEN* Screen = new GAME_SCREEN();
-    Screen->screenInit();
+    GAME_SCREEN Screen = GAME_SCREEN();
+    Screen.screenInit();
     
-    INPUT_STREAM* InputStream = new INPUT_STREAM();
+    INPUT_STREAM InputStream = INPUT_STREAM();
     
     std::vector<KART*> Kart_V;
     Kart_V.push_back(new KART(MAP_WIDTH / 4, MAP_HEIGHT / 2 + 1, 0.0));
@@ -332,16 +332,14 @@ int main()
     while (true)
     {
         Sleep(1);
-        InputStream->driveInput();
-        Kart_V[0]->putDirection(InputStream->direction);
+        InputStream.driveInput();
+        Kart_V[0]->putDirection(InputStream.direction);
         Kart_V[0]->drive();
         
-        Screen->Draw(GameMap->game_map, Kart_V[0]->getPosPair(), Kart_V[0]->getAngle(), Kart_V[0]->getDrift());
-
-        Screen->Render();
+        Screen.Draw(GameMap.game_map, Kart_V[0]->getPosPair(), Kart_V[0]->getAngle(), Kart_V[0]->getDrift());
+        Screen.Render();
     }
 
-    Screen->ScreenRelease();
+    Screen.ScreenRelease();
     return 0;
 }
-
