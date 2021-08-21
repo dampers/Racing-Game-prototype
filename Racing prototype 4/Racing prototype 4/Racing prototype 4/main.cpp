@@ -5,7 +5,8 @@
 #include <windows.graphics.h>
 
 #pragma warning(disable:4996)
-#define PI 3.1415926535
+
+const double PI = 3.1415926535;
 
 const int MAX_HEIGHT = 1001;
 const int MAX_WIDTH = 1001;
@@ -20,12 +21,24 @@ const int SCREEN_WIDTH = 80;
 
 enum Direction { STOP = 0, UP, DOWN, RIGHT, LEFT, DRIFT };
 
+
+//FILE* fileInput = fopen("testInput.txt", "w");
+//FILE* fileDrive = fopen("testLogic.txt", "w");
+//FILE* fileDraw = fopen("testDraw.txt", "w");
+//FILE* fileRender = fopen("testRender.txt", "w");
+//FILE* fileCycle = fopen("testCycle.txt", "w");
+//FILE* fileAngle = fopen("testAngle.txt", "w");
+
+time_t curr;
+
 class INPUT_STREAM
 {
 public:
     bool direction[6];
     void driveInput()
     {
+        /*curr = clock();*/
+
         for (int i = 0; i < 6; i++)
             direction[i] = false;
         if (GetAsyncKeyState(VK_UP)) direction[UP] = true;
@@ -33,6 +46,8 @@ public:
         if (GetAsyncKeyState(VK_RIGHT)) direction[RIGHT] = true;
         if (GetAsyncKeyState(VK_LEFT)) direction[LEFT] = true;
         if (GetAsyncKeyState(0x41)) direction[DRIFT] = true; // 'A' key
+
+        /*fprintf(fileInput, "%lf\n", ((double)clock() - curr) / 1000);*/
     }
 };
 
@@ -110,7 +125,7 @@ private:
 
 public:
 
-    KART(int pos_x, int pos_y, double speed) : pos_x(pos_x), pos_y(pos_y), speed(speed) {}
+    KART(int pos_x, int pos_y, double speed) : pos_x(pos_x), pos_y(pos_y), speed(speed), angle(0.0) {}
 
     std::pair<int, int> getPosPair()
     {
@@ -128,10 +143,12 @@ public:
             this->direction[i] = direction[i];
     }
 
-    int getAngle() { return angle; }
+    double getAngle() { return angle; }
 
     void drive()
     {
+        /*curr = clock();*/
+
         acceleration();
         friction();
         drift();
@@ -143,6 +160,8 @@ public:
         if (angle <= -2 * PI) angle += 2 * PI;
 
         checkBoundary();
+
+        /*fprintf(fileDrive, "%lf\n", ((double)clock() - curr) / 1000);*/
     }
 
     void checkMaterial(char material)
@@ -194,6 +213,8 @@ public:
 
     void Draw(char game_map[][MAX_WIDTH], std::pair<int, int> Kpos, double angle, bool drift)
     {
+        /*curr = clock();*/
+
         int pos_y = Kpos.second, pos_x = Kpos.first;
         memset(screen_camera, 0, sizeof(screen_camera));
         char tmp = game_map[pos_y][pos_x];
@@ -231,10 +252,14 @@ public:
         int sec = (next_time / 1000) % 60;
         int msec = next_time % 1000;
         sprintf(screen_camera[CAMERA_HEIGHT], "%2d : %2d : %d\n", min, sec, msec);
+
+        /*fprintf(fileDraw, "%lf\n", ((double)clock() - curr) / 1000);*/
     }
 
     void Render()
     {
+        /*curr = clock();*/
+
         ScreenClear();
         DWORD screen_size = 0;
         SetConsoleCursorPosition(screen[screen_index], { 0, 0 });
@@ -269,6 +294,8 @@ public:
         }
         //WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &dw, NULL);
         ScreenFlipping();
+
+        /*fprintf(fileRender, "%lf\n", ((double)clock() - curr) / 1000);*/
     }
 };
 
@@ -324,22 +351,37 @@ int main()
     
     INPUT_STREAM InputStream = INPUT_STREAM();
     
-    std::vector<KART*> Kart_V;
-    Kart_V.push_back(new KART(MAP_WIDTH / 4, MAP_HEIGHT / 2 + 1, 0.0));
+    std::vector<KART> Kart_V;
+    Kart_V.push_back(KART(MAP_WIDTH / 4, MAP_HEIGHT / 2 + 1, 0.0));
     
     time_t total_time = clock();
-    
+    time_t cycle_time = clock();
     while (true)
     {
+        cycle_time = clock();
+
         Sleep(1);
         InputStream.driveInput();
-        Kart_V[0]->putDirection(InputStream.direction);
-        Kart_V[0]->drive();
+        Kart_V[0].putDirection(InputStream.direction);
+        Kart_V[0].drive();
         
-        Screen.Draw(GameMap.game_map, Kart_V[0]->getPosPair(), Kart_V[0]->getAngle(), Kart_V[0]->getDrift());
+        std::pair<int, int> KartCoord = Kart_V[0].getPosPair();
+        Kart_V[0].checkMaterial(GameMap.game_map[KartCoord.second][KartCoord.first]);
+        Screen.Draw(GameMap.game_map, KartCoord, Kart_V[0].getAngle(), Kart_V[0].getDrift());
         Screen.Render();
+
+        /*fprintf(fileCycle, "%lf\n", ((double)clock()-cycle_time)/1000);
+        fprintf(fileAngle, "%lf\n", Kart_V[0].getAngle());*/
     }
 
     Screen.ScreenRelease();
+
+    /*fclose(fileInput);
+    fclose(fileDrive);
+    fclose(fileDraw);
+    fclose(fileRender);
+    fclose(fileAngle);
+    fclose(fileAngle);*/
+
     return 0;
 }

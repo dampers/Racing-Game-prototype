@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <string.h>
 #include <windows.graphics.h>
+\
 
 #pragma warning(disable:4996)
 
@@ -38,6 +39,14 @@ const int CAMERAHEIGHT = 25;
 //char screen_camera[(CAMERAHEIGHT + 1) * (CAMERAWIDTH + 1) + 25];
 char screen_camera[CAMERAHEIGHT + 1][CAMERAWIDTH + 1];
 
+FILE* fileCycle = fopen("testCycle.txt", "w");
+FILE* fileInput = fopen("testInput.txt", "w");
+FILE* fileLogic = fopen("testLogic.txt", "w");
+FILE* fileDraw = fopen("testDraw.txt", "w");
+FILE* fileRender = fopen("testRender.txt", "w");
+
+time_t curr;
+
 void ScreenInit()
 {
 	CONSOLE_CURSOR_INFO cii;
@@ -72,6 +81,8 @@ void ScreenRelease()
 
 void Input()
 {
+	/*curr = clock();*/
+
 	for (int i = 0; i < 6; i++)
 		direction[i] = false;
 	if (GetAsyncKeyState(VK_UP)) direction[UP] = true;
@@ -79,10 +90,14 @@ void Input()
 	if (GetAsyncKeyState(VK_RIGHT)) direction[RIGHT] = true;
 	if (GetAsyncKeyState(VK_LEFT)) direction[LEFT] = true;
 	if (GetAsyncKeyState(0x41)) direction[SHIFT] = true; // 'A' key
+
+	/*fprintf(fileInput, "%lf\n", ((double)clock() - curr)/1000);*/
 }
 
 void Logic()
 {
+	//curr = clock();
+
 	if (direction[UP] && speed < MAX_SPEED)
 	{
 		if (speed < 0) speed += dec; // deceleration
@@ -160,10 +175,14 @@ void Logic()
 	{
 		speed = 1.0;
 	}
+
+	//fprintf(fileLogic, "%lf\n", ((double)clock() - curr) / 1000);
 }
 
 void Draw()
 {
+	//curr = clock();
+
 	memset(screen_camera, 0, sizeof(screen_camera));
 	char tmp = game_map[pos_y][pos_x];
 	game_map[pos_y][pos_x] = 'o';
@@ -200,10 +219,14 @@ void Draw()
 	int sec = (next_time / 1000) % 60;
 	int msec = next_time % 1000;
 	sprintf(screen_camera[CAMERAHEIGHT], "%2d : %2d : %d\n", min, sec, msec);
+
+	//fprintf(fileDraw, "%lf\n", ((double)clock() - curr) / 1000);
 }
 
 void Render()
 {
+	//curr = clock();
+
 	ScreenClear();
 	DWORD screen_size = 0;
 	SetConsoleCursorPosition(screen[screen_index], { 0, 0 });
@@ -239,6 +262,8 @@ void Render()
 	}
 	//WriteFile(screen[screen_index], screen_camera, sizeof(screen_camera), &dw, NULL);
 	ScreenFlipping();
+
+	/*fprintf(fileRender, "%lf\n", ((double)clock() - curr) / 1000);*/
 }
 
 void Setup()
@@ -282,20 +307,37 @@ void Setup()
 
 }
 
+//FILE* fileAngle = fopen("testAngle.txt", "w");
+
 int main()
 {
 	Setup();
 
+	time_t cycle_time;
+
 	while (true)
 	{
+		cycle_time = clock();
+
 		Sleep(1);
 		Input();
 		Logic();
 		Draw();
 		Render();
+
+		/*fprintf(fileCycle, "%lf\n", ((double)clock() - cycle_time) / 1000);
+		fprintf(fileAngle, "%lf\n", angle);*/
 	}
 
 	ScreenRelease();
+
+	/*fclose(fileInput);
+	fclose(fileLogic);
+	fclose(fileDraw);
+	fclose(fileRender);
+	fclose(fileCycle);
+	fclose(fileAngle);*/
+
 
 	return 0;
 }
