@@ -13,7 +13,7 @@ const int MAX_WIDTH = 1001;
 
 const int CAMERA_WIDTH = 80;
 const int CAMERA_HEIGHT = 25;
-const double MAX_SPEED = 3;
+const double MAX_SPEED = 4.0;
 const int MAP_HEIGHT = 500;
 const int MAP_WIDTH = 800;
 const int SCREEN_HEIGHT = 25;
@@ -29,7 +29,7 @@ enum Direction { STOP = 0, UP, DOWN, RIGHT, LEFT, DRIFT };
 //FILE* fileCycle = fopen("testCycle.txt", "w");
 //FILE* fileAngle = fopen("testAngle.txt", "w");
 
-time_t curr;
+//time_t curr;
 
 class INPUT_STREAM
 {
@@ -166,7 +166,7 @@ public:
 
     void checkMaterial(char material)
     {
-        if (material == 'G' || material == 'Y')
+        if (speed > 1.0 && (material == 'G' || material == 'Y'))
             speed = 1.0;
     }
 
@@ -352,13 +352,14 @@ int main()
     INPUT_STREAM InputStream = INPUT_STREAM();
     
     std::vector<KART> Kart_V;
+
     Kart_V.push_back(KART(MAP_WIDTH / 4, MAP_HEIGHT / 2 + 1, 0.0));
     
     time_t total_time = clock();
-    time_t cycle_time = clock();
+    /*time_t cycle_time = clock();*/
     while (true)
     {
-        cycle_time = clock();
+        /*cycle_time = clock();*/
 
         Sleep(1);
         InputStream.driveInput();

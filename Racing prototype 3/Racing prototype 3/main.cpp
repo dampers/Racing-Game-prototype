@@ -20,7 +20,7 @@ int pos_x;
 int pos_y;
 
 
-const double MAX_SPEED = 3;
+const double MAX_SPEED = 3.0;
 double speed = 0.0;
 double acc = 0.2;
 double dec = 0.3;
@@ -39,13 +39,13 @@ const int CAMERAHEIGHT = 25;
 //char screen_camera[(CAMERAHEIGHT + 1) * (CAMERAWIDTH + 1) + 25];
 char screen_camera[CAMERAHEIGHT + 1][CAMERAWIDTH + 1];
 
-FILE* fileCycle = fopen("testCycle.txt", "w");
-FILE* fileInput = fopen("testInput.txt", "w");
-FILE* fileLogic = fopen("testLogic.txt", "w");
-FILE* fileDraw = fopen("testDraw.txt", "w");
-FILE* fileRender = fopen("testRender.txt", "w");
+//FILE* fileCycle = fopen("testCycle.txt", "w");
+//FILE* fileInput = fopen("testInput.txt", "w");
+//FILE* fileLogic = fopen("testLogic.txt", "w");
+//FILE* fileDraw = fopen("testDraw.txt", "w");
+//FILE* fileRender = fopen("testRender.txt", "w");
 
-time_t curr;
+//time_t curr;
 
 void ScreenInit()
 {
@@ -313,11 +313,9 @@ int main()
 {
 	Setup();
 
-	time_t cycle_time;
 
 	while (true)
 	{
-		cycle_time = clock();
 
 		Sleep(1);
 		Input();
