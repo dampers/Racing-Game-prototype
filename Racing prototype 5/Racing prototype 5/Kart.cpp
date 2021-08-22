@@ -38,25 +38,25 @@ void KART::drift()
 
 void KART::checkBoundary()
 {
-    if (pos_x < CAMERA_WIDTH * 2)
+    if (pos_x < GAME_SCREEN::WIDTH * 2)
     {
         speed = 0.0;
-        pos_x = CAMERA_WIDTH * 2 + 1;
+        pos_x = GAME_SCREEN::WIDTH * 2 + 1;
     }
-    if (pos_x > MAP_WIDTH - 2 * CAMERA_WIDTH)
+    if (pos_x > GAME_MAP::WIDTH - 2 * GAME_SCREEN::WIDTH)
     {
         speed = 0.0;
-        pos_x = MAP_WIDTH - 2 * CAMERA_WIDTH - 1;
+        pos_x = GAME_MAP::WIDTH - 2 * GAME_SCREEN::WIDTH - 1;
     }
-    if (pos_y < CAMERA_HEIGHT * 2)
+    if (pos_y < GAME_SCREEN::HEIGHT * 2)
     {
         speed = 0.0;
-        pos_y = CAMERA_HEIGHT * 2 + 1;
+        pos_y = GAME_SCREEN::HEIGHT * 2 + 1;
     }
-    if (pos_y > MAP_HEIGHT - 2 * CAMERA_HEIGHT)
+    if (pos_y > GAME_MAP::HEIGHT - 2 * GAME_SCREEN::HEIGHT)
     {
         speed = 0.0;
-        pos_y = MAP_HEIGHT - 2 * CAMERA_HEIGHT - 1;
+        pos_y = GAME_MAP::HEIGHT - 2 * GAME_SCREEN::HEIGHT - 1;
     }
 }
 

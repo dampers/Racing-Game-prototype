@@ -12,6 +12,7 @@ private:
     int pos_x;
     int pos_y;
     bool direction[6] = {};
+    const double MAX_SPEED = 4.0;
 
     void acceleration();
     void friction();

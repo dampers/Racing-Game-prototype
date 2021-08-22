@@ -14,17 +14,17 @@ int main()
 {
 
     // game set up
-    GAME_MAP GameMap = GAME_MAP();
+    static GAME_MAP GameMap;
     GameMap.SetMap();
 
-    GAME_SCREEN Screen = GAME_SCREEN();
-    Screen.screenInit();
+    static GAME_SCREEN Screen;
+    Screen.Init();
 
-    INPUT_STREAM InputStream = INPUT_STREAM();
+    static INPUT_STREAM InputStream;
 
-    std::vector<KART*> Kart_V;
+    std::vector<KART> Kart_V;
 
-    Kart_V.push_back(new KART(MAP_WIDTH / 4, MAP_HEIGHT / 2 + 1, 0.0));
+    Kart_V.push_back(KART(GAME_MAP::WIDTH / 4, GAME_MAP::HEIGHT / 2 + 1, 0.0));
 
     time_t total_time = clock();
     /*time_t cycle_time = clock();*/
@@ -34,19 +34,19 @@ int main()
 
         Sleep(1);
         InputStream.driveInput();
-        Kart_V[0]->putDirection(InputStream.direction);
-        Kart_V[0]->drive();
+        Kart_V[0].putDirection(InputStream.direction);
+        Kart_V[0].drive();
 
-        std::pair<int, int> KartCoord = Kart_V[0]->getPosPair();
-        Kart_V[0]->checkMaterial(GameMap.game_map[KartCoord.second][KartCoord.first]);
-        Screen.Draw(GameMap.game_map, KartCoord, Kart_V[0]->getAngle(), Kart_V[0]->getDrift());
+        std::pair<int, int> KartCoord = Kart_V[0].getPosPair();
+        Kart_V[0].checkMaterial(GameMap.game_map[KartCoord.second][KartCoord.first]);
+        Screen.Draw(GameMap.game_map, KartCoord, Kart_V[0].getAngle(), Kart_V[0].getDrift());
         Screen.Render();
 
         /*fprintf(fileCycle, "%lf\n", ((double)clock()-cycle_time)/1000);
         fprintf(fileAngle, "%lf\n", Kart_V[0].getAngle());*/
     }
 
-    Screen.ScreenRelease();
+    Screen.Final();
 
     /*fclose(fileInput);
     fclose(fileDrive);
