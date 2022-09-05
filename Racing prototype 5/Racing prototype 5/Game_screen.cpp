@@ -109,6 +109,8 @@ void GAME_SCREEN::Render()
             else if (screen_camera[screen_y][screen_x] == '-')
                 SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
 
+            else if (screen_camera[screen_y][screen_x] == '!')
+                SetConsoleTextAttribute(screen[screen_index], FOREGROUND_BLUE);
             WriteFile(screen[screen_index], screen_camera[screen_y] + screen_x, 1, &screen_size, NULL);
         }
     }
